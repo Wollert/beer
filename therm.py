@@ -14,7 +14,7 @@ class Therm(object):
     
     def __init__(self, adr):
         self.adr = adr
-        self.device_file = '/sys/bus/w1/devices/28-' + self.adr + '/w1_slave'
+        self.device_file = '/sys/bus/w1/devices/' + self.adr + '/w1_slave'
         
     def read_temp_raw(self):
         self.f = open(self.device_file, 'r')
@@ -35,7 +35,7 @@ class Therm(object):
 
 
 def get_adr():
-    folders = glob.glob('/sys/bus/w1/devices/28-*')
+    folders = glob.glob('/sys/bus/w1/devices/*')
     adr = []
     for i in range(len(folders)):
        adr.append((folders[i])[-12:])

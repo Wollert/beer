@@ -14,11 +14,11 @@ samples = 5
 therms = []
 now = time.time()
 
-t_amb = therm.Therm('000004e08693')
-t_c_b = therm.Therm('000004e0f7cc')
-t_c_m = therm.Therm('000004e0840a')
-t_c_t = therm.Therm('000004e08e26')
-t_hs  = therm.Therm('000004e0804f')
+t_amb = therm.Therm('28-000004e08693')
+t_c_b = therm.Therm('28-000004e0f7cc')
+t_c_m = therm.Therm('28-000004e0840a')
+t_c_t = therm.Therm('28-000004e08e26')
+t_hs  = therm.Therm('28-000004e0804f')
 
 print time.time() - now
 now = time.time()
