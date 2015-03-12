@@ -28,7 +28,7 @@ for i in range (samp):
     load_row = []
     for j in range(1, 3, 1):
 #        load_row.append(adc.readADCDifferential(j, (j+1), pga, sps))
-         load_row.append(load.read_load(j))
+         load_row.append(load.store_load(j))
     print i
     print load_row
     load_raw.append(load_row)
