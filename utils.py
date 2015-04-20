@@ -129,7 +129,6 @@ def get_1w_adr():
        adr.append((folders[i])[-12:])
     return adr
 
-
 # Get data from ADC and load cells
 class Load(object):
     def __init__(self):
@@ -151,7 +150,7 @@ class Load(object):
         return self.read(ch) 
 
     def store(self, ch):
-        self.read_load(ch)
+        self.read(ch)
         db = MySQLdb.connect(user="beeruser",db="beerdb")
         c = db.cursor()
         c.execute("""UPDATE LoadCell SET Value=%s, Time=now() where ID=%s""",(self.load, ch))
@@ -188,4 +187,63 @@ class Load(object):
         db.commit()
         return (l1 + l2)
 
+# Gets the sums of the current loads in the db, mode 0: raw value, mode 1: percent of full keg
+def get_load(mode=1):
+    db = MySQLdb.connect(user="beeruser",db="beerdb")
+    c = db.cursor()
+    c.execute("""SELECT sum(Value) FROM LoadCell WHERE ID<3""")
+    l = float(c.fetchone()[0])
+    if mode:
+        c.execute("""SELECT Value FROM LoadCell WHERE ID = 3 OR ID = 4""")
+        le = float(c.fetchone()[0])
+        lf = float(c.fetchone()[0])
+        lpros = 100 * (l - le) / (lf - le)
+#        print le
+#        print lf
+        return lpros
+    else:
+        return l
 
+
+
+# Sets the sum of the current loads in the db as the value for an empty keg
+def set_empty_keg():
+    db = MySQLdb.connect(user="beeruser",db="beerdb")
+    c = db.cursor()
+    l = 0
+    reps = 10
+    for i in range(reps):
+        c.execute("""SELECT sum(Value) FROM LoadCell WHERE ID<3""")
+        l = l + float(c.fetchone()[0])
+        time.sleep(0.2)
+    c.execute("""UPDATE LoadCell SET Value=%s, Time=now() where ID=3""",l/reps)
+    db.commit()
+    return l/reps
+
+# Sets the sum of the current loads in the db as the value for a full keg
+def set_full_keg():
+    db = MySQLdb.connect(user="beeruser",db="beerdb")
+    c = db.cursor()
+    l = 0
+    reps = 10
+    for i in range(reps):
+        c.execute("""SELECT sum(Value) FROM LoadCell WHERE ID<3""")
+        l = l + float(c.fetchone()[0])
+        time.sleep(0.2)
+    c.execute("""UPDATE LoadCell SET Value=%s, Time=now() where ID=4""",l/reps)
+    db.commit()
+    return l/reps
+
+# Sets the sum of the current loads in the db as the value when the keg is missing
+def set_missing_keg():
+    db = MySQLdb.connect(user="beeruser",db="beerdb")
+    c = db.cursor()
+    l = 0
+    reps = 10
+    for i in range(reps):
+        c.execute("""SELECT sum(Value) FROM LoadCell WHERE ID<3""")
+        l = l + float(c.fetchone()[0])
+        time.sleep(0.2)
+    c.execute("""UPDATE LoadCell SET Value=%s, Time=now() where ID=5""",l/reps)
+    db.commit()
+    return l/reps
