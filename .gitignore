@@ -1,2 +1,5 @@
 # Ignore these:
 *.pyc
+*.mp4
+*.save
+*.1

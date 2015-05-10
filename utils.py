@@ -14,6 +14,7 @@ GPIO.setmode(GPIO.BOARD)
 
 GPIO.setwarnings(False)
 
+
 # Controling a power supply 
 class PSU:
 
@@ -80,6 +81,7 @@ class Fan:
     def changeDC(self, reldc):
         return self.change_DC(reldc)
 
+
 # Get data from 1-wire temperature probes
 class Therm(object):
 
@@ -121,13 +123,83 @@ class Therm(object):
     def store_temp(self):
         return self.store()
 
+
+# Returns the temperature of either ID(1) or address(0), or the average of 
+# the probes inside the cooler(adr = 0).
+def get_temp(adr=0, mode=1):
+    temp = 0
+    db = MySQLdb.connect(user="beeruser",db="beerdb")
+    c = db.cursor()
+    if(adr == 0):
+        c.execute("""SELECT avg(Value) FROM Temperature WHERE ID<4""")
+    elif(mode):
+        c.execute("""SELECT Value FROM Temperature WHERE ID=%s""",(adr))
+    else:
+        c.execute("""SELECT Value FROM Temperature WHERE Address<%s""",(adr))
+    temp = c.fetchone()[0]
+    return temp
+
+
+# Sets the value at position with the given id.
+def set_temp(id, val):
+    db = MySQLdb.connect(user="beeruser",db="beerdb")
+    c = db.cursor()
+    c.execute("""UPDATE Temperature SET Value=%s, Time=now() where ID=%s""",(int(val), id))
+    db.commit()
+ 
+
+# Returns the ambient temperature (ID=4)
+def get_tamb():
+    return get_temp(4)
+
+
+# Returns the temperature at the heat sink (ID=5)
+def get_ths():
+    return get_temp(5)
+
+
+# Returns the maximum permitted temperature at the heat sink (ID=6)
+def get_thsmax():
+    return get_temp(6)
+
+def set_thsmax(val):
+    set_temp(6, val)
+
+
+# Returns the current target temperature (ID=7)
+def get_tset():
+    return get_temp(7)
+
+def set_tset(val):
+    set_temp(7, val)
+
+
+# Returns the maximum setable target temperature (ID=8)
+def get_tsetmax():
+    return get_temp(8)
+
+def set_tsetmax(val):
+    set_temp(8, val)
+
+
+# Returns the minimum setable target temperature (ID=9)
+def get_tsetmin():
+    return get_temp(9)
+
+def set_tsetmin(val):
+    set_temp(9, val)
+
+
 # Returns the addresses of all connected 1-wire devices
 def get_1w_adr():
     folders = glob.glob('/sys/bus/w1/devices/*')
     adr = []
     for i in range(len(folders)):
-       adr.append((folders[i])[-12:])
+       print (folders[i])[-13]
+       if (folders[i])[-13] == '-':
+           adr.append((folders[i])[-15:])
     return adr
+
 
 # Get data from ADC and load cells
 class Load(object):
@@ -187,6 +259,7 @@ class Load(object):
         db.commit()
         return (l1 + l2)
 
+
 # Gets the sums of the current loads in the db, mode 0: raw value, mode 1: percent of full keg
 def get_load(mode=1):
     db = MySQLdb.connect(user="beeruser",db="beerdb")
@@ -205,7 +278,6 @@ def get_load(mode=1):
         return l
 
 
-
 # Sets the sum of the current loads in the db as the value for an empty keg
 def set_empty_keg():
     db = MySQLdb.connect(user="beeruser",db="beerdb")
@@ -219,6 +291,7 @@ def set_empty_keg():
     c.execute("""UPDATE LoadCell SET Value=%s, Time=now() where ID=3""",l/reps)
     db.commit()
     return l/reps
+
 
 # Sets the sum of the current loads in the db as the value for a full keg
 def set_full_keg():
@@ -234,6 +307,7 @@ def set_full_keg():
     db.commit()
     return l/reps
 
+
 # Sets the sum of the current loads in the db as the value when the keg is missing
 def set_missing_keg():
     db = MySQLdb.connect(user="beeruser",db="beerdb")
@@ -247,3 +321,31 @@ def set_missing_keg():
     c.execute("""UPDATE LoadCell SET Value=%s, Time=now() where ID=5""",l/reps)
     db.commit()
     return l/reps
+
+
+# Gets the input from a switch/button, with events (without bouncetime) for change of state
+class Button:
+
+    BUTTONDOWN = 3
+    BUTTONUP = 4
+
+    def __init__(self,button,callback):
+        self.button = button
+        self.callback = callback
+
+        GPIO.setmode(GPIO.BOARD)
+
+        GPIO.setwarnings(False)
+        GPIO.setup(self.button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+        # Add event to the GPIO input
+#        GPIO.add_event_detect(self.button, GPIO.BOTH, callback=self.button_event, bouncetime=200)
+        GPIO.add_event_detect(self.button, GPIO.BOTH, callback=self.button_event)
+
+    def button_event(self,button):
+        if GPIO.input(button):
+            event = self.BUTTONUP
+        else:
+            event = self.BUTTONDOWN
+        self.callback(event)
+        return
