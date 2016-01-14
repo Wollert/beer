@@ -8,7 +8,7 @@ GPIO.setmode(GPIO.BOARD)
 
 load = utils.Load()
 
-while True:
+while utils.keep_running():
     load.store(1)
     load.store(2)
     time.sleep(0.1)

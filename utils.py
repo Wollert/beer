@@ -1,3 +1,4 @@
+
 # Various classes to cover different types of simple hardware
 # http://sourceforge.net/p/raspberry-gpio-python/wiki/Home/
 
@@ -27,29 +28,51 @@ class PSU:
 
     def on(self):
         GPIO.output(self.pson, 0)
+        db = MySQLdb.connect(user="beeruser",db="beerdb")
+        c = db.cursor()
+        c.execute("""UPDATE Times SET Time=Now(), Flag = 1 WHERE ID = 3""")
+        db.commit()
 
     def off(self):
         GPIO.output(self.pson, 1)
+        db = MySQLdb.connect(user="beeruser",db="beerdb")
+        c = db.cursor()
+        c.execute("""UPDATE Times SET Time=Now(), Flag = 0 WHERE ID = 3""")
+        db.commit()
 
     def ok(self):
         return GPIO.input(self.psok)
+        db = MySQLdb.connect(user="beeruser",db="beerdb")
+        c = db.cursor()
+        c.execute("""UPDATE Times SET Time=Now() WHERE ID = 6""")
+        db.commit()
 
     def get(self):
         return not GPIO.input(self.pson)
 
-
 # Controling a NMOS transistor
 class NMOS:
 
-    def __init__(self, ctrl):
+    def __init__(self, ctrl, dbid = 0):
         self.ctrl = ctrl
+        self.dbid = dbid
         GPIO.setup(self.ctrl, GPIO.OUT, initial=GPIO.LOW)
         
     def on(self):
         GPIO.output(self.ctrl, 1)
+        if self.dbid != 0:
+            db = MySQLdb.connect(user="beeruser",db="beerdb")
+            c = db.cursor()
+            c.execute("""UPDATE Times SET Time=Now(), Flag = 1 WHERE ID = %s""",(self.dbid))
+            db.commit()
 
     def off(self):
         GPIO.output(self.ctrl, 0)
+        if self.dbid != 0:
+            db = MySQLdb.connect(user="beeruser",db="beerdb")
+            c = db.cursor()
+            c.execute("""UPDATE Times SET Time=Now(), Flag = 0 WHERE ID = %s""",(self.dbid))
+            db.commit()
 
     def get(self):
         return GPIO.input(self.ctrl)
@@ -67,6 +90,16 @@ class Fan:
 
     def set_DC(self, dc):
         if dc <= 100 and dc >= 0:
+            if self.dc == 0 and dc > 0:
+                db = MySQLdb.connect(user="beeruser",db="beerdb")
+                c = db.cursor()
+                c.execute("""UPDATE Times SET Time=Now(), Flag = 1 WHERE ID = 1""")
+                db.commit()
+            elif self.dc > 0 and dc == 0:
+                db = MySQLdb.connect(user="beeruser",db="beerdb")
+                c = db.cursor()
+                c.execute("""UPDATE Times SET Time=Now(), Flag = 0 WHERE ID = 1""")
+                db.commit()
             self.dc = dc
         self.p.ChangeDutyCycle(self.dc)
         return dc
@@ -137,7 +170,7 @@ def get_temp(adr=0, mode=1):
     else:
         c.execute("""SELECT Value FROM Temperature WHERE Address<%s""",(adr))
     temp = c.fetchone()[0]
-    return temp
+    return float(temp)
 
 
 # Sets the value at position with the given id.
@@ -329,9 +362,10 @@ class Button:
     BUTTONDOWN = 3
     BUTTONUP = 4
 
-    def __init__(self,button,callback):
+    def __init__(self,button,callback,dbid):
         self.button = button
         self.callback = callback
+        self.dbid = dbid
 
         GPIO.setmode(GPIO.BOARD)
 
@@ -345,7 +379,41 @@ class Button:
     def button_event(self,button):
         if GPIO.input(button):
             event = self.BUTTONUP
+            if self.dbid != 0:
+                db = MySQLdb.connect(user="beeruser",db="beerdb")
+                c = db.cursor()
+                c.execute("""UPDATE Times SET Time=Now(), Flag = 1 WHERE ID = %s""",(self.dbid))
+                db.commit()
         else:
             event = self.BUTTONDOWN
+            if self.dbid != 0:
+                db = MySQLdb.connect(user="beeruser",db="beerdb")
+                c = db.cursor()
+                c.execute("""UPDATE Times SET Time=Now(), Flag = 0 WHERE ID = %s""",(self.dbid))
+                db.commit()
         self.callback(event)
         return
+
+
+# Kill signal
+def keep_running():
+    db = MySQLdb.connect(user="beeruser",db="beerdb")
+    c = db.cursor()
+    c.execute("""SELECT Flag FROM Times WHERE ID=7""")
+    flag  = int(c.fetchone()[0])
+    if not flag:
+        return True
+    else:
+        return False
+
+def start_running():
+    db = MySQLdb.connect(user="beeruser",db="beerdb")
+    c = db.cursor()
+    c.execute("""UPDATE Times SET Flag = 0 WHERE ID = 7""")
+    db.commit()
+
+def stop_running():
+    db = MySQLdb.connect(user="beeruser",db="beerdb")
+    c = db.cursor()
+    c.execute("""UPDATE Times SET Flag = 1 WHERE ID = 7""")
+    db.commit()

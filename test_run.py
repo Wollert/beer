@@ -30,11 +30,16 @@ t_hs  = utils.Therm('28-000004e0804f')
 
 try:
     while(1):
-        print "Ambient temperature: " + str(t_amb.store_temp())
-        print "Down temperature in cooler: " + str(t_c_b.store_temp())
-        print "Middle temperature in cooler: " + str(t_c_m.store_temp())
-        print "Up temperture in cooler: " + str(t_c_t.store_temp())
-        print "Heatsink temperature: " + str(t_hs.store_temp())
+        t_amb.store_temp()
+        t_c_b.store_temp()
+        t_c_m.store_temp()
+        t_c_t.store_temp()
+        t_hs.store_temp()
+#        print "Ambient temperature: " + str(t_amb.store_temp())
+#        print "Down temperature in cooler: " + str(t_c_b.store_temp())
+#        print "Middle temperature in cooler: " + str(t_c_m.store_temp())
+#        print "Up temperture in cooler: " + str(t_c_t.store_temp())
+#        print "Heatsink temperature: " + str(t_hs.store_temp())
 
 except KeyboardInterrupt:
     print "Exiting gracefully"
